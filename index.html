@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TOBaTS: Health Guardian Scroll</title>
+    <!-- Use a free pixel font from Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* Center content for start screen */
+            min-height: 100vh;
+            margin: 0;
+            background-color: #222222; /* Darker background for body */
+            font-family: Arial, sans-serif;
+            color: #FFFFFF; /* Default text color to white for dark theme */
+        }
+        #startScreenContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px;
+            background-color: #FFFFFF; 
+            color: #1A202C; 
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        #startScreenContainer h1 {
+            color: #0033A0; 
+            margin-bottom: 10px;
+            font-size: 1.5em; 
+        }
+        #startScreenContainer .logo-image { 
+            max-width: 300px; 
+            max-height: 150px; 
+            margin-bottom: 15px;
+            object-fit: contain; 
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            /* Optional: add a border for retro effect */
+            border: 3px solid #0033A0;
+            background: #fff;
+            border-radius: 4px;
+        }
+        #startScreenContainer p {
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            color: #2D3748; 
+        }
+        #startScreenContainer .action-buttons button,
+        #startScreenContainer button#startGameBtn {
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 10px;
+            min-width: 220px;
+            color: white;
+            font-weight: bold;
+        }
+        #startGameBtn {
+            background-color: #D90429; 
+        }
+        #startGameBtn:hover {
+            background-color: #B90021; 
+        }
+        /* --- Styles for game elements (canvas, info panel etc.) --- */
+        #gameCanvas {
+            border: 2px solid #4A5568; 
+            background-color: #1A202C; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            touch-action: none; 
+            cursor: grab; 
+        }
+        #gameCanvas.grabbing {
+            cursor: grabbing;
+        }
+        .game-container {
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            padding: 10px; 
+            background-color: #2D3748; 
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+        .info-panel {
+            display: flex;
+            justify-content: space-between; 
+            align-items: center;
+            width: 600px; 
+            max-width: 95vw; 
+            margin-top: 10px; 
+            margin-bottom: 5px; 
+            padding: 8px 12px; 
+            background-color: #0033A0; 
+            color: #FFFFFF; 
+            border-radius: 8px;
+            border: 1px solid #002270; 
+            box-sizing: border-box;
+        }
+        .info-panel span {
+            font-size: 12px; 
+            font-weight: bold;
+            margin: 0 5px; 
+        }
+        #score, #health, #personalHighScoreDisplay, #levelDisplay { 
+            color: #FFFFFF; 
+        }
+        .user-id-display {
+            font-size: 0.7em;
+            color: #A0AEC0; 
+            margin-top: 5px;
+            word-break: break-all;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 200; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.7); 
+        }
+        .modal-content {
+            background-color: #E2E8F0; 
+            margin: 10% auto; 
+            padding: 20px;
+            border: 1px solid #A0AEC0;
+            border-radius: 10px;
+            width: 80%; 
+            max-width: 450px;
+            text-align: center;
+            color: #1A202C; 
+            position: relative; 
+        }
+        .close-button { 
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #718096; 
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #1A202C; 
+            text-decoration: none;
+        }
+        .modal-content h2 { margin-top: 0; color: #0033A0; }
+        .modal-content input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 10px 0 20px 0;
+            display: inline-block;
+            border: 1px solid #CBD5E0;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .modal-content button {
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 5px;
+            font-weight: bold;
+        }
+        .modal-content button.primary { background-color: #D90429; color: white; } 
+        .modal-content button.primary:hover { background-color: #B90021; }
+        .modal-content button.secondary { background-color: #0033A0; color: white; } 
+        .modal-content button.secondary:hover { background-color: #002270; }
+        .modal-content button.grey { background-color: #A0AEC0; color: #1A202C; } 
+        .modal-content button.grey:hover { background-color: #718096; }
+
+
+        #leaderboardScreen .modal-content { max-width: 500px; }
+        #leaderboardTable {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+        #leaderboardTable th, #leaderboardTable td {
+            border: 1px solid #CBD5E0; 
+            padding: 8px;
+            text-align: left;
+        }
+        #leaderboardTable th {
+            background-color: #EDF2F7; 
+            color: #2D3748;
+        }
+         #leaderboardTable td:first-child, #leaderboardTable td:last-child { text-align: center; }
+
+
+        .controls-info {
+            margin-top: 5px; 
+            font-size: 0.8em; 
+            color: #A0AEC0; 
+            text-align: center;
+        }
+        .action-buttons button { 
+             padding: 8px 15px;
+            font-size: 0.9em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 5px;
+            background-color: #0033A0; 
+            color: white;
+            font-weight: bold;
+        }
+        .action-buttons button:hover {
+            background-color: #002270; 
+        }
+         .status-message {
+            margin-top: 5px;
+            font-size: 0.8em;
+            color: #718096; 
+            min-height: 1em; 
+        }
+        body, .info-panel, .controls-info, .modal-content, .user-id-display {
+    font-family: 'Press Start 2P', Arial, monospace !important;
+    letter-spacing: 1px;
+}
+button,
+#startScreenContainer .action-buttons button,
+#startScreenContainer button#startGameBtn,
+.action-buttons button,
+.modal-content button {
+    font-family: 'Press Start 2P', Arial, monospace !important;
+    letter-spacing: 1px;
+}
+    </style>
+</head>
+<body>
+    <div id="startScreenContainer">
+        <img src="https://tobats-website.vercel.app/_next/image?url=%2FTOBATS-Logo.png&w=384&q=75" alt="TOBaTS Logo" class="logo-image" /> 
+        <h1>TOBaTS: TEMBaKS</h1> 
+        <p>Help protect public health by targeting illegal medicines!</p>
+        <button id="startGameBtn">Start Game</button>
+        <div class="action-buttons">
+            <button id="leaderboardBtnStart" onclick="showLeaderboard()">View Leaderboard</button>
+        </div>
+         <div id="statusMessageStart" class="status-message">Initializing...</div>
+    </div>
+
+    <div class="game-container" id="actualGameContent">
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        <div class="info-panel">
+            <span>Score: <span id="score">0</span></span>
+            <span>Health: <span id="health">100</span></span>
+            <span>Level: <span id="levelDisplay">1</span></span> 
+            <span>My Hi-Score: <span id="personalHighScoreDisplay">0</span></span>
+        </div>
+        <div class="user-id-display">User ID: <span id="userIdDisplay">loading...</span></div>
+        <p class="controls-info">
+            Keyboard: Arrow Keys to Move, Spacebar to Shoot.<br>
+            Touch/Mouse: Drag player to Move (auto-shoots).
+        </p>
+         <div id="statusMessageGame" class="status-message"></div>
+    </div>
+
+    <div id="gameOverScreen" class="modal">
+        <div class="modal-content">
+            <button class="close-button" onclick="returnToStartPage()">&times;</button> 
+            <h2>Game Over!</h2>
+            <p>Your final score: <span id="finalScore">0</span></p>
+            <p>Your Personal High Score: <span id="gameOverPersonalHighScore">0</span></p>
+            <div id="newHighScoreNameInput" style="display:none;">
+                <p id="namePromptText">New High Score! Enter your name for the leaderboard:</p>
+                <input type="text" id="playerNameInput" placeholder="Your Name (max 15 chars)" maxlength="15">
+                <button class="primary" onclick="submitScoreToLeaderboardWithPrompt()">Submit to Leaderboard</button>
+                <button class="grey" onclick="restartGameWithoutSubmit()">Just Play Again</button>
+            </div>
+            <div id="gameOverDefaultButtons">
+                 <button class="secondary" onclick="restartGame()">Play Again</button>
+                 <button class="grey" onclick="returnToStartPage()">Return to Start Page</button> 
+            </div>
+            <p class="educational-tip-modal">
+                Remember: Always verify medicines with the Farmatag™ hologram and MAL number.
+                Purchase from licensed pharmacies only. Stay safe!
+            </p>
+        </div>
+    </div>
+
+    <div id="leaderboardScreen" class="modal">
+        <div class="modal-content">
+            <button class="close-button" onclick="closeLeaderboard()">&times;</button> 
+            <h2>Top Scores</h2>
+            <table id="leaderboardTable">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Name</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                    <tr><td colspan="3">Loading...</td></tr>
+                </tbody>
+            </table>
+            <button class="grey" style="margin-top: 20px;" onclick="closeLeaderboard()">Close</button>
+        </div>
+    </div>
+    
+    <script type="module">
+        console.log("Game script starting execution..."); 
+
+        // --- Canvas and Context ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Make rendering pixelated
+        ctx.imageSmoothingEnabled = false;
+        canvas.style.imageRendering = 'pixelated';
+
+        // Theme Colors from Logo
+        const THEME_RED = '#D90429'; 
+        const THEME_BLUE = '#0033A0'; 
+        const THEME_YELLOW_ORANGE = '#FFA500'; 
+        const THEME_WHITE = '#FFFFFF';
+        const THEME_BLACK = '#000000';
+        const THEME_ENEMY_HIGH_LEVEL = '#70113C'; 
+        const THEME_ENEMY_MEDIUM = '#A90021'; 
+        const HEALTH_GAIN_COLOR = '#28a745'; // Green for health gain text
+
+
+        // These global variables are provided by the Canvas environment.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'tobats-game-dev'; 
+
+        // UI Elements for Screens and Status
+        const startScreenContainer = document.getElementById('startScreenContainer');
+        const actualGameContent = document.getElementById('actualGameContent');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const leaderboardButtonStart = document.getElementById('leaderboardBtnStart'); 
+        const statusMessageStart = document.getElementById('statusMessageStart');
+        const statusMessageGame = document.getElementById('statusMessageGame'); 
+
+
+        if (!firebaseConfig) {
+            console.error("Firebase config not found. Leaderboard features will be disabled.");
+            statusMessageStart.textContent = "Leaderboard features disabled (Firebase config missing).";
+            if(leaderboardButtonStart) leaderboardButtonStart.disabled = true;
+        } else {
+            console.log("Firebase config found."); 
+        }
+        
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let app;
+        let auth;
+        let db;
+        let userId = null;
+        let userDisplayName = "Player"; 
+        let currentPersonalHighScore = 0;
+        let unsubscribeLeaderboard = null; 
+        let gameHasBeenInitialized = false; 
+
+        // --- UI Elements ---
+        const scoreDisplay = document.getElementById('score');
+        const healthDisplay = document.getElementById('health');
+        const personalHighScoreDisplay = document.getElementById('personalHighScoreDisplay');
+        const levelDisplay = document.getElementById('levelDisplay'); 
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const gameOverPersonalHighScore = document.getElementById('gameOverPersonalHighScore');
+        const newHighScoreNameInputDiv = document.getElementById('newHighScoreNameInput');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const namePromptText = document.getElementById('namePromptText'); 
+        const gameOverDefaultButtons = document.getElementById('gameOverDefaultButtons');
+
+        const leaderboardScreen = document.getElementById('leaderboardScreen');
+        const leaderboardBody = document.getElementById('leaderboardBody');
+
+
+        // --- Initialize Firebase and Auth ---
+       async function initFirebase() { 
+            console.log("initFirebase called."); 
+            if (!firebaseConfig) {
+                console.warn("initFirebase: firebaseConfig is missing, cannot proceed."); 
+                statusMessageStart.textContent = "Leaderboard features disabled (Firebase config missing).";
+                if(leaderboardButtonStart) leaderboardButtonStart.disabled = true;
+                return Promise.reject("Firebase config missing"); 
+            }
+            statusMessageStart.textContent = "Connecting to Firebase...";
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                console.log("Firebase app, db, auth initialized."); 
+
+                onAuthStateChanged(auth, async (user) => {
+                    console.log("Auth state changed. User:", user); 
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        console.log("User signed in with UID:", userId);
+                        statusMessageStart.textContent = "Connected.";
+                        if (statusMessageGame) statusMessageGame.textContent = "Connected.";
+                        await loadPersonalHighScore(); 
+                        if (leaderboardScreen.style.display === 'block') {
+                            fetchLeaderboard();
+                        }
+                    } else {
+                        console.log("User is signed out. Attempting to sign in..."); 
+                        userIdDisplay.textContent = "Signing in...";
+                        statusMessageStart.textContent = "Authenticating...";
+                         if (statusMessageGame) statusMessageGame.textContent = "Authenticating...";
+                        if (initialAuthToken) {
+                            console.log("Attempting signInWithCustomToken..."); 
+                            await signInWithCustomToken(auth, initialAuthToken).catch(err => {
+                                console.warn("Custom token sign-in failed, trying anonymous:", err); 
+                                return signInAnonymously(auth); 
+                            });
+                        } else {
+                            console.log("Attempting signInAnonymously..."); 
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+                 return Promise.resolve(); 
+            } catch (error) {
+                console.error("Firebase initialization error in initFirebase:", error); 
+                userIdDisplay.textContent = "Firebase Error";
+                statusMessageStart.textContent = "Firebase Error during init.";
+                if (statusMessageGame) statusMessageGame.textContent = "Firebase Error during init.";
+                if(leaderboardButtonStart) leaderboardButtonStart.disabled = true;
+                return Promise.reject(error); 
+            }
+        }
+        
+        // --- Firestore Data Functions ---
+        async function loadPersonalHighScore() { 
+            if (!userId || !db) {
+                console.warn("loadPersonalHighScore: userId or db not available."); 
+                return;
+            }
+            console.log("Loading personal high score for user:", userId); 
+            const scoreRef = doc(db, `artifacts/${appId}/users/${userId}/personal_scores`, "tobats_game_hs");
+            try {
+                const docSnap = await getDoc(scoreRef);
+                if (docSnap.exists()) {
+                    currentPersonalHighScore = docSnap.data().score || 0;
+                    userDisplayName = docSnap.data().playerName || `Player_${userId.substring(0,5)}`;
+                    console.log("Loaded high score:", currentPersonalHighScore, "name:", userDisplayName); 
+                } else {
+                    currentPersonalHighScore = 0;
+                    userDisplayName = `Player_${userId.substring(0,5)}`;
+                    console.log("No personal high score found, defaults set."); 
+                }
+                personalHighScoreDisplay.textContent = currentPersonalHighScore;
+                playerNameInput.value = userDisplayName; 
+            } catch (error) {
+                console.error("Error loading personal high score:", error);
+                personalHighScoreDisplay.textContent = "Error";
+            }
+        }
+        async function savePersonalHighScoreAndNameToFirestore(newScore, nameToSave) { 
+            if (!userId || !db) {
+                console.warn("savePersonalHighScoreAndNameToFirestore: userId or db not available."); 
+                return;
+            }
+            console.log("Saving personal high score:", newScore, "name:", nameToSave); 
+            currentPersonalHighScore = newScore; 
+            userDisplayName = nameToSave; 
+            personalHighScoreDisplay.textContent = currentPersonalHighScore;
+            
+            const scoreRef = doc(db, `artifacts/${appId}/users/${userId}/personal_scores`, "tobats_game_hs");
+            try {
+                await setDoc(scoreRef, { score: newScore, playerName: nameToSave, lastUpdated: serverTimestamp() });
+                console.log("Personal high score & name saved to Firestore:", newScore, "for player:", nameToSave);
+            } catch (error) {
+                console.error("Error saving personal high score to Firestore:", error);
+            }
+        }
+        window.submitScoreToLeaderboardWithPrompt = async function() { 
+            console.log("submitScoreToLeaderboardWithPrompt called."); 
+            const name = playerNameInput.value.trim();
+            if (name.length === 0) {
+                alert("Please enter a name.");
+                return;
+            }
+            if (name.length > 15) {
+                alert("Name is too long (max 15 characters).");
+                return;
+            }
+
+            if (statusMessageGame) statusMessageGame.textContent = "Submitting score..."; 
+            const scoreToSubmit = score; 
+
+            await savePersonalHighScoreAndNameToFirestore(scoreToSubmit, name); 
+
+            if (!userId || !db) {
+                alert("Cannot submit score. User not authenticated or Firebase not ready.");
+                if (statusMessageGame) statusMessageGame.textContent = "Submission failed (auth error).";
+                closeGameOverModal();
+                return;
+            }
+
+            const leaderboardRef = doc(db, `artifacts/${appId}/public/data/leaderboard_tobats_game`, userId);
+            try {
+                await setDoc(leaderboardRef, {
+                    playerName: userDisplayName, 
+                    score: scoreToSubmit, 
+                    userId: userId,
+                    timestamp: serverTimestamp()
+                });
+                console.log("Score submitted to leaderboard:", scoreToSubmit, "by", userDisplayName); 
+                if (statusMessageGame) statusMessageGame.textContent = "Score submitted!";
+                setTimeout(() => { if(statusMessageGame && statusMessageGame.textContent === "Score submitted!") statusMessageGame.textContent = "Connected."; }, 2000);
+                
+                newHighScoreNameInputDiv.style.display = 'none';
+                gameOverDefaultButtons.style.display = 'block';
+            } catch (error) {
+                console.error("Error submitting to leaderboard:", error);
+                if (statusMessageGame) statusMessageGame.textContent = "Error submitting score.";
+                alert("Error submitting score. Please try again.");
+            }
+        }
+        window.restartGameWithoutSubmit = function() { 
+            closeGameOverModal();
+            restartGame(); 
+        }
+        async function fetchLeaderboard() { 
+            if (!db) {
+                 leaderboardBody.innerHTML = '<tr><td colspan="3">Leaderboard unavailable (DB error).</td></tr>';
+                return;
+            }
+            leaderboardBody.innerHTML = '<tr><td colspan="3">Fetching scores...</td></tr>';
+            const leaderboardCol = collection(db, `artifacts/${appId}/public/data/leaderboard_tobats_game`);
+            const q = query(leaderboardCol, orderBy("score", "desc"), limit(10));
+
+            if (unsubscribeLeaderboard) unsubscribeLeaderboard();
+
+            unsubscribeLeaderboard = onSnapshot(q, (querySnapshot) => {
+                leaderboardBody.innerHTML = ''; 
+                if (querySnapshot.empty) {
+                    leaderboardBody.innerHTML = '<tr><td colspan="3">No scores yet. Be the first!</td></tr>';
+                    return;
+                }
+                let rank = 1;
+                querySnapshot.forEach((docEntry) => {
+                    const data = docEntry.data();
+                    const row = leaderboardBody.insertRow();
+                    row.insertCell().textContent = rank++;
+                    row.insertCell().textContent = data.playerName || `Player...${data.userId ? data.userId.substring(data.userId.length - 5) : '???'}`;
+                    row.insertCell().textContent = data.score;
+                });
+            }, (error) => {
+                console.error("Error fetching leaderboard:", error);
+                leaderboardBody.innerHTML = '<tr><td colspan="3">Error loading leaderboard.</td></tr>';
+            });
+        }
+        window.showLeaderboard = function() { 
+            if (!db || !firebaseConfig) {
+                alert("Leaderboard is unavailable. Firebase not connected properly.");
+                return;
+            }
+            fetchLeaderboard();
+            leaderboardScreen.style.display = 'block';
+        }
+        window.closeLeaderboard = function() { 
+            leaderboardScreen.style.display = 'none';
+            if (unsubscribeLeaderboard) {
+                unsubscribeLeaderboard(); 
+                unsubscribeLeaderboard = null;
+            }
+        }
+        window.closeGameOverModal = function() { 
+            gameOverScreen.style.display = 'none';
+            newHighScoreNameInputDiv.style.display = 'none';
+            gameOverDefaultButtons.style.display = 'block';
+        }
+        window.returnToStartPage = function() { 
+            console.log("Return to Start Page button clicked.");
+            closeGameOverModal(); 
+            if (leaderboardScreen.style.display === 'block') closeLeaderboard(); 
+            
+            actualGameContent.style.display = 'none'; 
+            startScreenContainer.style.display = 'flex'; 
+
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId);
+                gameLoopId = null;
+            }
+            gameOver = true; 
+        }
+
+
+        // --- Game Elements & State ---
+        let player;
+        let bullets = [];
+        let enemyBullets = []; 
+        let illegalMedicines = [];
+        let registeredMedicines = [];
+        let particles = []; 
+        let floatingTexts = []; 
+
+        let score = 0; 
+        let health = 100;
+        let currentLevel = 1; 
+        const SCORE_PER_LEVEL = 100; 
+
+        let gameOver = false;
+        let keys = {}; 
+        let powerUpActive = false;
+        let powerUpType = null; 
+        let powerUpTimer = 0;
+        const POWER_UP_DURATION = 5000; 
+        let lastShotTime = 0;
+        const RAPID_FIRE_DELAY = 100; 
+        const NORMAL_FIRE_DELAY = 300; 
+        const LASER_BLASTER_FIRE_DELAY = 70; 
+        let isTouchActive = false;
+        let isMouseDown = false; 
+        let mouseControlActive = false; 
+
+        // --- Difficulty Settings ---
+        const BASE_ENEMY_SPAWN_RATE = 0.02;
+        const MAX_ENEMY_SPAWN_RATE = 0.05; 
+        const ENEMY_SPAWN_RATE_INCREMENT_PER_SCORE = 0.00001; 
+
+        const BASE_ENEMY_SPEED = 1;
+        const MAX_ENEMY_SPEED = 3.5; 
+        const ENEMY_SPEED_INCREMENT_PER_SCORE = 0.0005; 
+
+        const PLAYER_VERTICAL_MOVEMENT_AREA_TOP = canvas.height * 0.6; 
+
+        // --- Event Listeners for Input (Keyboard) ---
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // --- Touch Event Listeners ---
+        function handlePointerMove(clientX, clientY) { 
+            if (gameOver || !player) return;
+            const rect = canvas.getBoundingClientRect();
+            const targetX = clientX - rect.left;
+            const targetY = clientY - rect.top;
+
+            player.x = targetX - player.width / 2; 
+            player.y = targetY - player.height / 2;
+
+            // Constrain player movement
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+            if (player.y < PLAYER_VERTICAL_MOVEMENT_AREA_TOP) player.y = PLAYER_VERTICAL_MOVEMENT_AREA_TOP;
+            if (player.y > canvas.height - player.height) player.y = canvas.height - player.height;
+        }
+        canvas.addEventListener('touchstart', (e) => { 
+            e.preventDefault();
+            isTouchActive = true;
+            handlePointerMove(e.touches[0].clientX, e.touches[0].clientY); 
+        }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { 
+            e.preventDefault();
+            if (!isTouchActive) return;
+            handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        canvas.addEventListener('touchend', (e) => { 
+            e.preventDefault();
+            isTouchActive = false;
+        }, { passive: false });
+
+        // --- Mouse Event Listeners ---
+        canvas.addEventListener('mousedown', (e) => { 
+            if (e.button === 0) { 
+                isMouseDown = true;
+                mouseControlActive = true; 
+                canvas.classList.add('grabbing');
+                handlePointerMove(e.clientX, e.clientY);
+            }
+        });
+        canvas.addEventListener('mousemove', (e) => { 
+            if (isMouseDown && mouseControlActive) {
+                handlePointerMove(e.clientX, e.clientY);
+            }
+        });
+        window.addEventListener('mouseup', (e) => {  
+            if (e.button === 0) {
+                isMouseDown = false;
+                mouseControlActive = false;
+                canvas.classList.remove('grabbing');
+            }
+        });
+
+
+        function initPlayer() { 
+            console.log("initPlayer called"); 
+            player = {
+                x: canvas.width / 2 - 25, 
+                y: canvas.height - 60, 
+                width: 50, height: 30,
+                color: THEME_BLUE, 
+                speed: 7,
+            };
+        }
+        class Bullet { 
+            constructor(x, y, width, height, color, speed, bulletType = 'normal', isLaser = false) { 
+                this.x = x; this.y = y; this.width = width; this.height = height; this.color = color; this.speed = speed;
+                this.isLaser = isLaser;
+                this.bulletType = bulletType; 
+            }
+            draw() { 
+                ctx.fillStyle = this.color; 
+                if (this.isLaser) { 
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + this.width / 2, this.y);
+                    ctx.lineTo(this.x + this.width / 2, this.y - this.height); 
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = this.width;
+                    ctx.stroke();
+                } else {
+                    ctx.fillRect(this.x, this.y, this.width, this.height); 
+                }
+            }
+            update() { this.y -= this.speed; }
+        }
+
+        class EnemyBullet {
+            constructor(x, y, width, height, color, speed) {
+                this.x = x; this.y = y; this.width = width; this.height = height; this.color = color; this.speed = speed;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+            update() {
+                this.y += this.speed;
+            }
+        }
+        
+        class FloatingText { 
+            constructor(text, x, y, color, size = 16) {
+                this.text = text; this.x = x; this.y = y; this.color = color; this.size = size;
+                this.alpha = 1; this.duration = 60; // Frames
+                this.vy = -0.8; // Upward speed
+            }
+            update() {
+                this.y += this.vy; this.duration--;
+                if (this.duration < 20) { this.alpha = this.duration / 20; }
+            }
+            draw() {
+                ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
+                ctx.font = `bold ${this.size}px Arial`; ctx.textAlign = 'center';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+
+        class IllegalMedicine { 
+            constructor(x, y, width, height, color, speed, type = 'normal', hp = 1) { 
+                this.x = x; this.y = y; this.width = width; this.height = height; this.color = color; this.speed = speed;
+                this.type = type;
+                this.hp = hp;
+                this.originalHp = hp; 
+
+                this.shootCooldown = Math.random() * 1000 + 1000; 
+                this.shootInterval = 2000; 
+                this.moveDirection = Math.random() < 0.5 ? 1 : -1; 
+                this.horizontalSpeed = 0.5 + Math.random() * 0.3; 
+                if (this.type === 'high_static_shooter') {
+                    this.y = 40 + Math.random() * 30; 
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.color; 
+                
+                if (this.type === 'medium_scroll') {
+                    const radius = this.width / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + radius, this.y); 
+                    ctx.lineTo(this.x + radius, this.y + this.height - radius); 
+                    ctx.arc(this.x + radius, this.y + this.height - radius, radius, Math.PI, 0, true); 
+                    ctx.lineTo(this.x + this.width - radius, this.y + radius); 
+                    ctx.arc(this.x + this.width - radius, this.y + radius, radius, 0, Math.PI, true); 
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (this.type === 'high_static_shooter') {
+                    ctx.fillRect(this.x, this.y, this.width * 1.5, this.height * 1.2); 
+                    ctx.fillStyle = THEME_BLACK; 
+                    ctx.fillRect(this.x + (this.width*1.5)/2 - 5, this.y + this.height*1.2, 10, 10);
+                } else { 
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
+                
+                ctx.strokeStyle = this.type === 'high_static_shooter' ? THEME_WHITE : (this.type === 'medium_scroll' ? '#800000' : THEME_BLACK); 
+                ctx.lineWidth = 2; 
+                ctx.beginPath();
+                const drawAreaWidth = this.type === 'high_static_shooter' ? this.width * 1.5 : this.width;
+                const drawAreaHeight = this.type === 'high_static_shooter' ? this.height * 1.2 : this.height; 
+                ctx.moveTo(this.x + 5, this.y + 5); 
+                ctx.lineTo(this.x + drawAreaWidth - 5, this.y + drawAreaHeight - 5);
+                ctx.moveTo(this.x + drawAreaWidth - 5, this.y + 5); 
+                ctx.lineTo(this.x + 5, this.y + drawAreaHeight - 5);
+                ctx.stroke();
+
+                if (this.type === 'high_static_shooter' && this.hp < this.originalHp) {
+                    const barWidth = drawAreaWidth * 0.8;
+                    const barHeight = 5;
+                    const barX = this.x + (drawAreaWidth - barWidth) / 2;
+                    const barY = this.y - barHeight - 3;
+                    ctx.fillStyle = '#555'; 
+                    ctx.fillRect(barX, barY, barWidth, barHeight);
+                    ctx.fillStyle = THEME_YELLOW_ORANGE; 
+                    ctx.fillRect(barX, barY, barWidth * (this.hp / this.originalHp), barHeight);
+                }
+            }
+            update() { 
+                if (this.type === 'normal' || this.type === 'medium_scroll') {
+                    this.y += this.speed; 
+                } else if (this.type === 'high_static_shooter') {
+                    this.x += this.horizontalSpeed * this.moveDirection;
+                    if (this.x <= 0 || this.x + this.width * 1.5 >= canvas.width) {
+                        this.moveDirection *= -1;
+                        this.x = Math.max(0, Math.min(this.x, canvas.width - this.width * 1.5)); 
+                    }
+
+                    this.shootCooldown -= 16; 
+                    if (this.shootCooldown <= 0) {
+                        enemyBullets.push(new EnemyBullet(this.x + (this.width * 1.5) / 2 - 3, this.y + this.height * 1.2 + 10, 6, 12, THEME_YELLOW_ORANGE, 4)); 
+                        this.shootCooldown = this.shootInterval + (Math.random() * 500 - 250); 
+                    }
+                }
+            }
+        }
+        class RegisteredMedicine { 
+            constructor(x, y, width, height, color, speed, type) {
+                this.x = x; this.y = y; this.width = width; this.height = height; this.color = color; this.speed = speed; this.type = type;
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.strokeStyle = THEME_WHITE; 
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
+
+                ctx.fillStyle = THEME_WHITE;
+                ctx.font = `bold ${this.height * 0.6}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                let icon = '?';
+                if (this.type === 'health') icon = '+';
+                else if (this.type === 'spreadShot') icon = 'S';
+                else if (this.type === 'rapidFire') icon = 'R';
+                else if (this.type === 'laserBlaster') icon = 'L';
+                ctx.fillText(icon, this.x + this.width / 2, this.y + this.height / 2);
+
+            }
+            update() { this.y += this.speed; }
+        }
+        class Particle { 
+            constructor(x, y, size, color, velocity) {
+                this.x = x; this.y = y; this.size = size; this.color = color; this.velocity = velocity;
+                this.alpha = 1; this.gravity = 0.05; 
+            }
+            draw() {
+                ctx.save(); ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+            update() {
+                this.x += this.velocity.x; this.y += this.velocity.y; this.velocity.y += this.gravity; 
+                this.alpha -= 0.02; if (this.size > 0.1) this.size -= 0.05; 
+            }
+        }
+
+        function handlePlayerMovement() { 
+            if (!player) return; 
+            if (!isTouchActive && !mouseControlActive) {
+                if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+                if (keys['ArrowRight'] && player.x < canvas.width - player.width) player.x += player.speed;
+                if (keys['ArrowUp'] && player.y > PLAYER_VERTICAL_MOVEMENT_AREA_TOP) player.y -= player.speed;
+                if (keys['ArrowDown'] && player.y < canvas.height - player.height) player.y += player.speed;
+            }
+        }
+        function triggerShot() { 
+            if (!player) return; 
+            const currentTime = Date.now();
+            let currentFireDelay;
+            let currentBulletType = 'normal';
+            
+            if (powerUpActive && powerUpType === 'laserBlaster') {
+                currentFireDelay = LASER_BLASTER_FIRE_DELAY;
+                currentBulletType = 'laser_pellet';
+            } else if (powerUpActive && powerUpType === 'rapidFire') {
+                currentFireDelay = RAPID_FIRE_DELAY;
+            } else if (powerUpActive && powerUpType === 'spreadShot') {
+                currentFireDelay = NORMAL_FIRE_DELAY; 
+                currentBulletType = 'spread_pellet';
+            }
+            else {
+                currentFireDelay = NORMAL_FIRE_DELAY;
+            }
+
+            if (currentTime - lastShotTime > currentFireDelay) {
+                lastShotTime = currentTime;
+                const bulletX = player.x + player.width / 2; 
+                const bulletY = player.y;
+
+                if (powerUpActive && powerUpType === 'laserBlaster') {
+                    const laserSpreadAngle = Math.PI / 36; 
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (i - 4.5) * 1.5; 
+                        bullets.push(new Bullet(bulletX + offsetX - 1.5, bulletY, 3, 15, THEME_YELLOW_ORANGE, 10, currentBulletType, true)); 
+                    }
+                } else if (powerUpActive && powerUpType === 'spreadShot') {
+                    bullets.push(new Bullet(bulletX - 2.5, bulletY, 5, 10, THEME_WHITE, 7, currentBulletType)); 
+                    bullets.push(new Bullet(bulletX - 12.5, bulletY + 5, 5, 10, '#B0E0E6', 7, currentBulletType)); 
+                    bullets.push(new Bullet(bulletX + 7.5, bulletY + 5, 5, 10, '#B0E0E6', 7, currentBulletType)); 
+                } else { 
+                    bullets.push(new Bullet(bulletX - 2.5, bulletY, 5, 10, THEME_WHITE, 7, 'normal')); 
+                }
+            }
+        }
+        function handleKeyboardShooting() { 
+            if (keys['Space']) triggerShot(); 
+        }
+        
+        function spawnIllegalMedicine() { 
+            let currentSpawnRate = BASE_ENEMY_SPAWN_RATE + (score * ENEMY_SPAWN_RATE_INCREMENT_PER_SCORE);
+            currentSpawnRate = Math.min(currentSpawnRate, MAX_ENEMY_SPAWN_RATE); 
+
+            if (Math.random() < currentSpawnRate) {
+                const size = Math.random() * 20 + 20; 
+                const x = Math.random() * (canvas.width - size);
+                let currentSpeed = BASE_ENEMY_SPEED + (score * ENEMY_SPEED_INCREMENT_PER_SCORE);
+                currentSpeed = Math.min(currentSpeed, MAX_ENEMY_SPEED); 
+                
+                let enemyType = 'normal';
+                let enemyHp = 1;
+                let enemyColor = THEME_RED; 
+
+                if (currentLevel >= 8 && illegalMedicines.filter(e => e.type === 'high_static_shooter').length < 1) { 
+                    const typeRoll = Math.random();
+                    if (typeRoll < 0.20) { 
+                        enemyType = 'high_static_shooter';
+                        enemyHp = 5; 
+                        enemyColor = THEME_ENEMY_HIGH_LEVEL; 
+                    }
+                }
+                
+                if (enemyType === 'normal' && currentLevel >= 5) {
+                     const mediumTypeRoll = Math.random();
+                     if (mediumTypeRoll < 0.30) { 
+                        enemyType = 'medium_scroll';
+                        enemyHp = 1;
+                        enemyColor = THEME_ENEMY_MEDIUM; 
+                     }
+                }
+                illegalMedicines.push(new IllegalMedicine(x, 0 - size, size, size, enemyColor, currentSpeed, enemyType, enemyHp));
+            }
+        }
+
+        function spawnRegisteredMedicine() { 
+            if (Math.random() < 0.007) { 
+                const size = 30; const x = Math.random() * (canvas.width - size); const speed = 1.5;
+                const types = ['health', 'spreadShot', 'rapidFire', 'laserBlaster']; 
+                const type = types[Math.floor(Math.random() * types.length)];
+                let color = THEME_WHITE; 
+                if (type === 'health') color = '#90EE90'; 
+                else if (type === 'spreadShot') color = '#ADD8E6'; 
+                else if (type === 'rapidFire') color = THEME_YELLOW_ORANGE; 
+                else if (type === 'laserBlaster') color = '#DA70D6'; 
+                
+                registeredMedicines.push(new RegisteredMedicine(x, 0 - size, size, size, color, speed, type));
+            }
+        }
+        function createExplosion(x, y, baseColor) { 
+            const particleCount = 10 + Math.floor(Math.random() * 10); 
+            for (let i = 0; i < particleCount; i++) {
+                const angle = Math.random() * Math.PI * 2; const speed = Math.random() * 3 + 1; 
+                const size = Math.random() * 3 + 1; 
+                const velocity = { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed - Math.random() * 2 };
+                const r = Math.floor(Math.random()*55) + 200; 
+                const g = Math.floor(Math.random()*100) + 50;  
+                const b = Math.floor(Math.random()*50);       
+                const particleColor = `rgba(${r}, ${g}, ${b}, 1)`;
+                particles.push(new Particle(x, y, size, particleColor, velocity));
+            }
+        }
+        function updateBullets() { for (let i = bullets.length - 1; i >= 0; i--) { bullets[i].update(); if (bullets[i].y < -20) bullets.splice(i, 1); } }
+        function updateEnemyBullets() { 
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                enemyBullets[i].update();
+                if (enemyBullets[i].y > canvas.height) {
+                    enemyBullets.splice(i, 1);
+                }
+            }
+        }
+        function updateParticles() { for (let i = particles.length - 1; i >= 0; i--) { particles[i].update(); if (particles[i].alpha <= 0 || particles[i].size <= 0.1) particles.splice(i, 1); } }
+        function updateFloatingTexts() { 
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                floatingTexts[i].update();
+                if (floatingTexts[i].alpha <= 0 || floatingTexts[i].duration <= 0) {
+                    floatingTexts.splice(i, 1);
+                }
+            }
+        }
+        function updateIllegalMedicines() { 
+            for (let i = illegalMedicines.length - 1; i >= 0; i--) { 
+                illegalMedicines[i].update(); 
+                if (illegalMedicines[i].y > canvas.height && (illegalMedicines[i].type === 'normal' || illegalMedicines[i].type === 'medium_scroll')) {
+                    if (illegalMedicines[i].type === 'medium_scroll') {
+                        health -= 1; 
+                        if (health < 0) health = 0;
+                        floatingTexts.push(new FloatingText("-1", illegalMedicines[i].x + illegalMedicines[i].width / 2, canvas.height - 10, THEME_RED, 20)); 
+                        updateUI();
+                    }
+                    illegalMedicines.splice(i, 1); 
+                }
+            } 
+        }
+        function updateRegisteredMedicines() { for (let i = registeredMedicines.length - 1; i >= 0; i--) { registeredMedicines[i].update(); if (registeredMedicines[i].y > canvas.height) registeredMedicines.splice(i, 1); } }
+        
+        function checkCollisions() { 
+            if (!player) return; 
+            // Player Bullets vs Illegal Medicines
+            for (let i = bullets.length - 1; i >= 0; i--) { 
+                for (let j = illegalMedicines.length - 1; j >= 0; j--) {
+                    const bullet = bullets[i];
+                    const enemy = illegalMedicines[j];
+                    if (bullet && enemy &&
+                        bullet.x < enemy.x + (enemy.type === 'high_static_shooter' ? enemy.width * 1.5 : enemy.width) &&
+                        bullet.x + bullet.width > enemy.x &&
+                        bullet.y < enemy.y + (enemy.type === 'high_static_shooter' ? enemy.height * 1.2 : enemy.height) && 
+                        bullet.y - (bullet.isLaser ? bullet.height : 0) > enemy.y 
+                        ) {
+                        
+                        if (enemy.type === 'high_static_shooter') {
+                            if (bullet.bulletType === 'laser_pellet') enemy.hp -= 5;
+                            else if (bullet.bulletType === 'spread_pellet') enemy.hp -= 2;
+                            else enemy.hp -= 1; 
+
+                            if (!bullet.isLaser) bullets.splice(i, 1); 
+
+                            if (enemy.hp <= 0) {
+                                createExplosion(enemy.x + (enemy.width * 1.5) / 2, enemy.y + (enemy.height * 1.2) / 2, enemy.color);
+                                illegalMedicines.splice(j, 1); 
+                                score += 50; 
+                            }
+                        } else { 
+                            createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color);
+                            if (!bullet.isLaser) bullets.splice(i, 1);
+                            illegalMedicines.splice(j, 1); 
+                            score += (enemy.type === 'medium_scroll' ? 15 : 10); 
+                        }
+                        updateUI(); 
+                        if (!bullets[i] && !bullet.isLaser) break; 
+                    }
+                }
+            }
+            // Player vs Illegal Medicines
+            for (let i = illegalMedicines.length - 1; i >= 0; i--) { 
+                const enemy = illegalMedicines[i];
+                 if (player.x < enemy.x + (enemy.type === 'high_static_shooter' ? enemy.width * 1.5 : enemy.width) &&
+                    player.x + player.width > enemy.x &&
+                    player.y < enemy.y + (enemy.type === 'high_static_shooter' ? enemy.height * 1.2 : enemy.height) &&
+                    player.y + player.height > enemy.y) {
+                    createExplosion(enemy.x + (enemy.type === 'high_static_shooter' ? enemy.width * 1.5 : enemy.width) / 2, 
+                                    enemy.y + (enemy.type === 'high_static_shooter' ? enemy.height * 1.2 : enemy.height) / 2, 
+                                    enemy.color);
+                    illegalMedicines.splice(i, 1); 
+                    health -= (enemy.type === 'high_static_shooter' ? 30 : 20); 
+                    if (health < 0) health = 0; 
+                    updateUI();
+                }
+            }
+            // Player vs Enemy Bullets
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                const eBullet = enemyBullets[i];
+                if (player.x < eBullet.x + eBullet.width &&
+                    player.x + player.width > eBullet.x &&
+                    player.y < eBullet.y + eBullet.height &&
+                    player.y + player.height > eBullet.y) {
+                    enemyBullets.splice(i, 1);
+                    health -= 15; 
+                    if (health < 0) health = 0;
+                    updateUI();
+                }
+            }
+
+            // Player vs Registered Medicines
+            for (let i = registeredMedicines.length - 1; i >= 0; i--) { 
+                if (player.x < registeredMedicines[i].x + registeredMedicines[i].width &&
+                    player.x + player.width > registeredMedicines[i].x &&
+                    player.y < registeredMedicines[i].y + registeredMedicines[i].height &&
+                    player.y + player.height > registeredMedicines[i].y) {
+                    const powerUp = registeredMedicines[i];
+                    const healthGained = 25; // Store health gain amount
+                    if (powerUp.type === 'health') { 
+                        health += healthGained; 
+                        if (health > 100) health = 100; 
+                        floatingTexts.push(new FloatingText(`+${healthGained}`, player.x + player.width / 2, player.y, HEALTH_GAIN_COLOR, 20)); // ADDED: Health gain indicator
+                    } 
+                    else { 
+                        powerUpActive = true; 
+                        powerUpType = powerUp.type; 
+                        powerUpTimer = POWER_UP_DURATION; 
+                    } 
+                    score += 20; 
+                    registeredMedicines.splice(i, 1); 
+                    updateUI();
+                }
+            }
+        }
+        function updatePowerUpTimer(deltaTime) { if (powerUpActive) { powerUpTimer -= deltaTime; if (powerUpTimer <= 0) { powerUpActive = false; powerUpType = null; powerUpTimer = 0; } } }
+        function updateUI() { 
+            scoreDisplay.textContent = score; 
+            healthDisplay.textContent = health; 
+            currentLevel = Math.floor(score / SCORE_PER_LEVEL) + 1; 
+            levelDisplay.textContent = currentLevel; 
+
+            if (userId) { 
+                personalHighScoreDisplay.textContent = currentPersonalHighScore; 
+            } else {
+                personalHighScoreDisplay.textContent = "N/A";
+            }
+        }
+        function checkGameOver() { 
+            if (health <= 0 && !gameOver) { 
+                gameOver = true; 
+                console.log("Game Over! Final Score:", score); 
+                finalScoreDisplay.textContent = score;
+                gameOverPersonalHighScore.textContent = currentPersonalHighScore; 
+
+                if (userId && score > currentPersonalHighScore) { 
+                    namePromptText.textContent = `New High Score: ${score}! Enter/confirm name:`;
+                    playerNameInput.value = userDisplayName; 
+                    newHighScoreNameInputDiv.style.display = 'block';
+                    gameOverDefaultButtons.style.display = 'none'; 
+                    playerNameInput.focus();
+                } else {
+                    newHighScoreNameInputDiv.style.display = 'none';
+                    gameOverDefaultButtons.style.display = 'block';
+                }
+                gameOverScreen.style.display = 'block';
+            }
+        }
+
+        function drawPlayer() { 
+            if (!player) return; 
+            ctx.fillStyle = player.color; 
+            ctx.fillRect(player.x, player.y, player.width, player.height); 
+        }
+        function drawElements(elements) { elements.forEach(element => element.draw()); }
+        function drawParticles() { particles.forEach(particle => particle.draw()); }
+        function drawFloatingTexts() { 
+            floatingTexts.forEach(text => text.draw());
+        }
+        function drawPowerUpStatus() { 
+            if (powerUpActive) {
+                ctx.font = 'bold 14px "Press Start 2P", Arial, monospace';
+                let powerUpName = "Power Up";
+                if (powerUpType === 'spreadShot') powerUpName = 'Spread Shot';
+                if (powerUpType === 'rapidFire') powerUpName = 'Rapid Fire';
+                if (powerUpType === 'laserBlaster') powerUpName = 'Laser Blaster'; 
+                
+                const statusText = `${powerUpName}: ${Math.ceil(powerUpTimer / 1000)}s`;
+                const textMetrics = ctx.measureText(statusText);
+                
+                const padding = 10;
+                const rectWidth = textMetrics.width + (padding * 2);
+                const rectHeight = 25; 
+                const rectX = 15; 
+                const rectY = canvas.height - (rectHeight + 10); 
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; 
+                ctx.strokeStyle = THEME_BLUE; 
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                const r = 5; 
+                ctx.moveTo(rectX + r, rectY);
+                ctx.lineTo(rectX + rectWidth - r, rectY);
+                ctx.quadraticCurveTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + r);
+                ctx.lineTo(rectX + rectWidth, rectY + rectHeight - r);
+                ctx.quadraticCurveTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - r, rectY + rectHeight);
+                ctx.lineTo(rectX + r, rectY + rectHeight);
+                ctx.quadraticCurveTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - r);
+                ctx.lineTo(rectX, rectY + r);
+                ctx.quadraticCurveTo(rectX, rectY, rectX + r, rectY);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.fillStyle = THEME_WHITE;
+                ctx.textAlign = 'left'; 
+                ctx.textBaseline = 'middle'; 
+                ctx.fillText(statusText, rectX + padding, rectY + rectHeight / 2);
+            }
+        }
+
+        let lastTime = 0;
+        let gameLoopId = null; 
+
+        function gameLoop(currentTime) { 
+            if (gameOver && gameOverScreen.style.display === 'block') { 
+                gameLoopId = requestAnimationFrame(gameLoop); 
+                return;
+            }
+            if (gameOver) {
+                console.log("Game Over - stopping game logic updates in gameLoop.");
+                return;
+            }
+
+
+            const deltaTime = currentTime - lastTime; lastTime = currentTime;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            handlePlayerMovement(); 
+            handleKeyboardShooting(); 
+            
+            if (isTouchActive || (isMouseDown && mouseControlActive)) { 
+                 triggerShot();
+            }
+            
+            updateBullets(); 
+            updateEnemyBullets(); 
+            updateParticles(); 
+            updateFloatingTexts(); 
+            spawnIllegalMedicine(); spawnRegisteredMedicine();
+            updateIllegalMedicines(); updateRegisteredMedicines();
+            checkCollisions(); updatePowerUpTimer(deltaTime);
+            
+            drawPlayer(); 
+            drawElements(bullets); 
+            drawElements(enemyBullets); 
+            drawElements(illegalMedicines); 
+            drawElements(registeredMedicines); 
+            drawParticles(); 
+            drawFloatingTexts(); 
+            drawPowerUpStatus();
+            
+            checkGameOver(); 
+            if (!gameOver) { 
+                gameLoopId = requestAnimationFrame(gameLoop);
+            } else {
+                console.log("Game Over detected at end of loop, next frame for game logic will not be requested.");
+            }
+        }
+
+        function startGamePlay() { 
+            console.log("startGamePlay called");
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId); 
+                gameLoopId = null;
+            }
+            restartGame(true); 
+        }
+        startGameBtn.addEventListener('click', () => { 
+            console.log("Start Game button clicked.");
+            startScreenContainer.style.display = 'none';
+            actualGameContent.style.display = 'flex'; 
+            startGamePlay();
+        });
+        window.restartGame = function(isFreshStart = false) { 
+            console.log("Restarting game... Fresh start:", isFreshStart); 
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId);
+                gameLoopId = null;
+            }
+
+            score = 0; health = 100; bullets = []; illegalMedicines = []; registeredMedicines = [];
+            particles = []; enemyBullets = []; floatingTexts = []; 
+            currentLevel = 1; 
+            gameOver = false; 
+            keys = {}; powerUpActive = false; powerUpType = null; powerUpTimer = 0;
+            lastShotTime = 0; isTouchActive = false; 
+            isMouseDown = false; mouseControlActive = false; 
+            
+            closeGameOverModal(); 
+            if (leaderboardScreen.style.display === 'block') closeLeaderboard();
+
+            if (!isFreshStart) { 
+                 startScreenContainer.style.display = 'none';
+                 actualGameContent.style.display = 'flex';
+            }
+
+
+            initPlayer(); 
+            updateUI(); 
+            
+            lastTime = performance.now(); 
+            gameLoopId = requestAnimationFrame(gameLoop); 
+        }
+        
+        // --- Initialize Page ---
+        console.log("Starting page initialization sequence..."); 
+        initPlayer(); 
+        updateUI();   
+        if (firebaseConfig) { 
+            initFirebase().then(() => { 
+                console.log("Firebase initialized successfully for start screen."); 
+            }).catch(err => {
+                console.error("Failed to init Firebase for start screen:", err); 
+                statusMessageStart.textContent = "Leaderboard Unavailable (Firebase Init Failed).";
+                if(leaderboardButtonStart) leaderboardButtonStart.disabled = true;
+            });
+        } else {
+            console.log("No Firebase config, running in offline mode for start screen."); 
+            personalHighScoreDisplay.textContent = "N/A (Offline)";
+            userIdDisplay.textContent = "Offline Mode";
+            statusMessageStart.textContent = "Leaderboard unavailable (Offline Mode).";
+            if(leaderboardButtonStart) leaderboardButtonStart.disabled = true;
+        }
+        console.log("Initial page script execution finished. Waiting for user to start game."); 
+    </script>
+</body>
+</html>
